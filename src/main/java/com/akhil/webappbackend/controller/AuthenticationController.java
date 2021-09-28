@@ -73,9 +73,6 @@ public class AuthenticationController {
 
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map,headers);
 
-        ResponseEntity<AccessResponse> response =
-                restTemplate.exchange(accessApi, HttpMethod.POST, entity, AccessResponse.class);
-
-        return response;
+        return restTemplate.exchange(accessApi, HttpMethod.POST, entity, AccessResponse.class);
     }
 }
