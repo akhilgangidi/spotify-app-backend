@@ -39,6 +39,9 @@ public class AuthenticationController {
     @Value("${spotify.access.api}")
     private String accessApi;
 
+    @Value("${frontend.uri}")
+    private String frontEndUri;
+
     @GetMapping("/access-token")
     public RedirectView getAuthorizationToken() throws URISyntaxException, MalformedURLException {
         URIBuilder uriBuilder = new URIBuilder();
@@ -59,7 +62,7 @@ public class AuthenticationController {
     }
 
     @GetMapping("/callback")
-    public ResponseEntity<AccessResponse> getAccessToken(@RequestParam String code) {
+    public RedirectView getAccessToken(@RequestParam String code) throws URISyntaxException, MalformedURLException {
         logger.info("Retrieved OAuth Token: " + code);
 
         HttpHeaders headers = new HttpHeaders();
@@ -72,7 +75,27 @@ public class AuthenticationController {
         map.add("redirect_uri", redirectURI);
 
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map,headers);
+        ResponseEntity<AccessResponse> response = restTemplate.exchange(accessApi, HttpMethod.POST, entity, AccessResponse.class);
 
-        return restTemplate.exchange(accessApi, HttpMethod.POST, entity, AccessResponse.class);
+        String accessToken = response.getBody().getAccess_token();
+        String tokenType = response.getBody().getToken_type();
+        String scope = response.getBody().getScope();
+        String expiration = String.valueOf(response.getBody().getExpires_in());
+        String refreshToken = response.getBody().getRefresh_token();
+
+        URIBuilder uriBuilder = new URIBuilder();
+        uriBuilder.setScheme("http");
+        uriBuilder.setHost(frontEndUri);
+        uriBuilder.setPath("/home");
+        uriBuilder.addParameter("access_token", accessToken);
+        uriBuilder.addParameter("token_type", tokenType);
+        uriBuilder.addParameter("scope", scope);
+        uriBuilder.addParameter("expiration", expiration);
+        uriBuilder.addParameter("refresh_token", refreshToken);
+        String url = uriBuilder.build().toURL().toString();
+
+        RedirectView redirectView = new RedirectView();
+        redirectView.setUrl(url);
+        return redirectView;
     }
 }
